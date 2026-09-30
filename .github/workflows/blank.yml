@@ -5,10 +5,6 @@ on:
     branches:
       - main
 
-permissions:
-  id-token: write
-  contents: read
-
 env:
   AWS_REGION: us-east-1
   AWS_ROLE_ARN: arn:aws:iam::046497226751:role/Github-OIDC-Role
@@ -17,6 +13,10 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout
