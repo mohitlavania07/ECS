@@ -26,19 +26,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ---------------------------------------
+      # Verify AWS Authentication
+      # ---------------------------------------
       - name: Verify AWS identity
         run: |
           echo "Checking AWS identity..."
           aws sts get-caller-identity
 
-
+      # ---------------------------------------
+      # Verify ECS Cluster
+      # ---------------------------------------
       - name: Verify ECS cluster
         run: |
-          aws ecs describe-cluster \
-            --cluster "${ECS_CLUSTER}" \
+          echo "Checking ECS cluster..."
+
+          aws ecs describe-clusters \
+            --clusters "${ECS_CLUSTER}" \
             --region "${AWS_REGION}"
 
-
+      # ---------------------------------------
+      # Deploy Auth Service
+      # ---------------------------------------
       - name: Deploy Auth Service
         run: |
           echo "Deploying Auth Service..."
@@ -49,7 +58,9 @@ jobs:
             --force-new-deployment \
             --region "${AWS_REGION}"
 
-
+      # ---------------------------------------
+      # Deploy Cart Service
+      # ---------------------------------------
       - name: Deploy Cart Service
         run: |
           echo "Deploying Cart Service..."
@@ -60,6 +71,9 @@ jobs:
             --force-new-deployment \
             --region "${AWS_REGION}"
 
+      # ---------------------------------------
+      # Deploy Product Service
+      # ---------------------------------------
       - name: Deploy Product Service
         run: |
           echo "Deploying Product Service..."
@@ -70,6 +84,9 @@ jobs:
             --force-new-deployment \
             --region "${AWS_REGION}"
 
+      # ---------------------------------------
+      # Wait for Auth Service
+      # ---------------------------------------
       - name: Wait for Auth Service
         run: |
           echo "Waiting for Auth Service..."
@@ -79,7 +96,9 @@ jobs:
             --services "${ECS_SERVICE1}" \
             --region "${AWS_REGION}"
 
-
+      # ---------------------------------------
+      # Wait for Cart Service
+      # ---------------------------------------
       - name: Wait for Cart Service
         run: |
           echo "Waiting for Cart Service..."
@@ -89,7 +108,9 @@ jobs:
             --services "${ECS_SERVICE2}" \
             --region "${AWS_REGION}"
 
-
+      # ---------------------------------------
+      # Wait for Product Service
+      # ---------------------------------------
       - name: Wait for Product Service
         run: |
           echo "Waiting for Product Service..."
@@ -99,7 +120,9 @@ jobs:
             --services "${ECS_SERVICE3}" \
             --region "${AWS_REGION}"
 
-
+      # ---------------------------------------
+      # Final Status
+      # ---------------------------------------
       - name: Final ECS deployment status
         run: |
           echo "======================================"
