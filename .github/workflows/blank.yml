@@ -5,10 +5,6 @@ on:
     branches:
       - main
 
-permissions:
-  id-token: write
-  contents: read
-
 env:
   AWS_REGION: us-east-1
   ECS_CLUSTER: microservices
@@ -23,27 +19,30 @@ jobs:
 
     name: Deploy Microservices to ECS
 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
 
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6.3.0
-        with:
-          role-to-assume: arn:aws:iam::046497226751:role/GitHubActions-ECS-Deploy
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-ECS
-
       - name: Verify AWS identity
         run: |
+          echo "Checking AWS identity..."
           aws sts get-caller-identity
 
 
-      - name: Deploy Service 1
+      - name: Verify ECS cluster
         run: |
+          aws ecs describe-cluster \
+            --cluster "${ECS_CLUSTER}" \
+            --region "${AWS_REGION}"
+
+
+      - name: Deploy Auth Service
+        run: |
+          echo "Deploying Auth Service..."
+
           aws ecs update-service \
             --cluster "${ECS_CLUSTER}" \
             --service "${ECS_SERVICE1}" \
@@ -51,43 +50,68 @@ jobs:
             --region "${AWS_REGION}"
 
 
-      - name: Deploy Service 2
+      - name: Deploy Cart Service
         run: |
+          echo "Deploying Cart Service..."
+
           aws ecs update-service \
             --cluster "${ECS_CLUSTER}" \
             --service "${ECS_SERVICE2}" \
             --force-new-deployment \
             --region "${AWS_REGION}"
 
-
-      - name: Deploy Service 3
+      - name: Deploy Product Service
         run: |
+          echo "Deploying Product Service..."
+
           aws ecs update-service \
             --cluster "${ECS_CLUSTER}" \
             --service "${ECS_SERVICE3}" \
             --force-new-deployment \
             --region "${AWS_REGION}"
 
-
-      - name: Wait for Service 1 stability
+      - name: Wait for Auth Service
         run: |
+          echo "Waiting for Auth Service..."
+
           aws ecs wait services-stable \
             --cluster "${ECS_CLUSTER}" \
             --services "${ECS_SERVICE1}" \
             --region "${AWS_REGION}"
 
 
-      - name: Wait for Service 2 stability
+      - name: Wait for Cart Service
         run: |
+          echo "Waiting for Cart Service..."
+
           aws ecs wait services-stable \
             --cluster "${ECS_CLUSTER}" \
             --services "${ECS_SERVICE2}" \
             --region "${AWS_REGION}"
 
 
-      - name: Wait for Service 3 stability
+      - name: Wait for Product Service
         run: |
+          echo "Waiting for Product Service..."
+
           aws ecs wait services-stable \
             --cluster "${ECS_CLUSTER}" \
             --services "${ECS_SERVICE3}" \
             --region "${AWS_REGION}"
+
+
+      - name: Final ECS deployment status
+        run: |
+          echo "======================================"
+          echo "ECS Deployment Completed"
+          echo "======================================"
+
+          aws ecs describe-services \
+            --cluster "${ECS_CLUSTER}" \
+            --services \
+              "${ECS_SERVICE1}" \
+              "${ECS_SERVICE2}" \
+              "${ECS_SERVICE3}" \
+            --region "${AWS_REGION}" \
+            --query 'services[].{Service:serviceName,Status:status,Running:runningCount,Desired:desiredCount,TaskDefinition:taskDefinition}' \
+            --output table
