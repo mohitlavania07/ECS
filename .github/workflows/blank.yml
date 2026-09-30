@@ -1,0 +1,68 @@
+name: Deploy ECS Microservices
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::046497226751:role/Github-OIDC-Role
+  ECS_CLUSTER: microservices
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy Auth Service
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service authservice-service-mggrkb58 \
+            --force-new-deployment
+
+      - name: Deploy Cart Service
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service cartservice-service-2dqnwwi2 \
+            --force-new-deployment
+
+      - name: Deploy product Service
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service productservice-service-60qkn6l0 \
+            --force-new-deployment
+
+      - name: Wait for Auth Service
+        run: |
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services authservice-service-mggrkb58
+
+      - name: Wait for Cart Service
+        run: |
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services cartservice-service-2dqnwwi2
+
+      - name: Wait for Product Service
+        run: |
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services productservice-service-60qkn6l0
