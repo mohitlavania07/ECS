@@ -1,19 +1,93 @@
-name: Debug OIDC
+name: Deploy Microservices to ECS
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: us-east-1
+  ECS_CLUSTER: microservices
+
+  ECS_SERVICE1: authservice-service-mggrkb58
+  ECS_SERVICE2: cartservice-service-2dqnwwi2
+  ECS_SERVICE3: productservice-service-60qkn6l0
+
 jobs:
-  debug:
+
+  deploy:
+
+    name: Deploy Microservices to ECS
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Print Context
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::046497226751:role/GitHubActions-ECS-Deploy
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-ECS
+
+      - name: Verify AWS identity
         run: |
-          echo "Repository=$GITHUB_REPOSITORY"
-          echo "Ref=$GITHUB_REF"
-          echo "Actor=$GITHUB_ACTOR"
+          aws sts get-caller-identity
+
+
+      - name: Deploy Service 1
+        run: |
+          aws ecs update-service \
+            --cluster "${ECS_CLUSTER}" \
+            --service "${ECS_SERVICE1}" \
+            --force-new-deployment \
+            --region "${AWS_REGION}"
+
+
+      - name: Deploy Service 2
+        run: |
+          aws ecs update-service \
+            --cluster "${ECS_CLUSTER}" \
+            --service "${ECS_SERVICE2}" \
+            --force-new-deployment \
+            --region "${AWS_REGION}"
+
+
+      - name: Deploy Service 3
+        run: |
+          aws ecs update-service \
+            --cluster "${ECS_CLUSTER}" \
+            --service "${ECS_SERVICE3}" \
+            --force-new-deployment \
+            --region "${AWS_REGION}"
+
+
+      - name: Wait for Service 1 stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${ECS_CLUSTER}" \
+            --services "${ECS_SERVICE1}" \
+            --region "${AWS_REGION}"
+
+
+      - name: Wait for Service 2 stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${ECS_CLUSTER}" \
+            --services "${ECS_SERVICE2}" \
+            --region "${AWS_REGION}"
+
+
+      - name: Wait for Service 3 stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${ECS_CLUSTER}" \
+            --services "${ECS_SERVICE3}" \
+            --region "${AWS_REGION}"
