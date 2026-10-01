@@ -1,4 +1,4 @@
-name: Deploy Microservices to ECS
+name: Deploy Microservices to ECS Service
 
 on:
   push:
